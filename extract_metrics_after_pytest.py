@@ -1,0 +1,67 @@
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+# Configuração, ajuste apenas se necessário.
+
+# Diretório raiz do projeto, os testes vai começar a execução a petir dele.
+PROJETO = "."
+
+# Diretório dos testes detectado automaticamente, mas pode forçar manualmente
+# Exemplos: TESTES = "./tests"  ou  TESTES = "./test"
+TESTES = None
+
+# Pasta onde os relatórios serão salvos (não altere)
+PASTA = "metrics-after-pytest"
+
+# Detecção automática do diretório de testes
+CANDIDATOS = ["tests", "test", "src/tests", "src/test"]
+
+if TESTES is None:
+    for candidato in CANDIDATOS:
+        if Path(candidato).exists():
+            TESTES = candidato
+            break
+
+if TESTES is None:
+    print("Erro: diretório de testes não encontrado.")
+    print(f"Procurado em: {CANDIDATOS}")
+    print("Defina manualmente a variável TESTES no script.")
+    sys.exit(1)
+
+# Execução
+os.makedirs(PASTA, exist_ok=True)
+
+print(f"Projeto : {os.path.abspath(PROJETO)}")
+print(f"Testes  : {TESTES}")
+print(f"Relatórios em: {PASTA}/")
+print()
+
+resultado = subprocess.run(
+    [
+        sys.executable, "-m", "pytest", TESTES,
+        "-v",
+        f"--junit-xml={os.path.join(PASTA, 'pytest_depois.xml')}",
+        f"--html={os.path.join(PASTA, 'pytest_depois.html')}",
+        "--self-contained-html",
+        f"--cov={PROJETO}",
+        "--cov-branch",
+        f"--cov-report=xml:{os.path.join(PASTA, 'coverage_depois.xml')}",
+        f"--cov-report=json:{os.path.join(PASTA, 'coverage_depois.json')}",
+        f"--cov-report=html:{os.path.join(PASTA, 'coverage_depois_html')}",
+        "--cov-report=term-missing",
+    ],
+    cwd=PROJETO,
+    text=True,
+    encoding="utf-8",
+)
+
+print(f"\nExit code: {resultado.returncode}")
+print(f"\nArquivos gerados em '{PASTA}':")
+print("  pytest_depois.xml      -> resultados dos testes em XML")
+print("  pytest_depois.html     -> relatorio visual dos testes")
+print("  coverage_depois.xml    -> cobertura de codigo em XML")
+print("  coverage_depois.json   -> cobertura de codigo em JSON")
+print("  coverage_depois_html/  -> relatorio visual de cobertura")
+print("\nConcluido.")
